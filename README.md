@@ -1,10 +1,19 @@
 # dungeon-dungeon
 
-2DすごろくゲームのAI決定ロジックを簡易的にまとめています。
+2D すごろくゲームのための進行・ネット対戦コア。下記の 3 つのコンポーネントでターン管理と同期を分離して設計しています。
 
-## 追加済みの決定ロジック
-- **職業別の優先度**: Warrior/Hunter/Cleric/Rogue/Mage に対して探索・戦闘・経済の優先度を付与しました。
-- **移動選択**: 視界に入るタイルを対象に、距離ヒューリスティックと価値・危険度を組み合わせて移動先を算出します。
-- **リスク評価と安全行動**: HP残量・罠確率・逃走成功率からリスクを数値化し、特に Hunter/Cleric は閾値を下げて撤退・回復を優先します。
+## GameManager
 
-`dungeon_ai.agent.AgentDecisionMaker` に主要なロジックがあります。`python -m unittest` でシナリオテストを確認できます。
+- 30 ターン固定の進行を管理し、ターンごとに VP (Victory Point) を集計。
+- ターン中のコマンド投入 (`enqueue_commands` / `receive_remote_commands`) と解決 (`resolve_current_turn`) をまとめて制御。
+- `NetSession`・`TurnController` を束ね、オフラインテスト用に `run_full_game` も提供。
+
+## TurnController
+
+- プレイヤー順序に基づいて入力キューを保持し、各ターンの行動解決を担当。
+- 実際の行動処理は `action_resolver` コールバックに委譲するため、ゲームロジックを差し替えやすい。
+
+## NetSession
+
+- Lockstep 前提のネット対戦で、入力コマンドの送受信とターンごとのリプレイ検証を分離。
+- 受信済みコマンドをプレイヤー順に整列し、`replay_log` で検証可能な履歴を保持。
